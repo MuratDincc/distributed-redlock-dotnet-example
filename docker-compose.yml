@@ -1,0 +1,61 @@
+version: '3.4'
+
+services:
+
+  wallet.api:
+      container_name: wallet-api-container
+      restart: always
+      build:
+        context: .
+        dockerfile: src/Wallet.Api/Dockerfile
+      environment:
+        - ASPNETCORE_ENVIRONMENT=Production
+        - ASPNETCORE_URLS=http://+:80
+      ports:
+        - "5000:80"
+      networks:
+        - myappnetwork
+
+  redis:
+    container_name: redis
+    image: redis/redis-stack-server:latest
+    restart: always
+    ports:
+        - "6379:6379"
+    networks:
+        - myappnetwork
+
+  elasticsearch:
+    container_name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.11.2
+    ports:
+        - 9200:9200
+    volumes:
+        - elasticsearch-data:/usr/share/elasticsearch/data
+    environment:
+        - xpack.monitoring.enabled=true
+        - xpack.watcher.enabled=false
+        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        - discovery.type=single-node
+    networks:
+        - myappnetwork
+
+  kibana:
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:7.11.2
+    ports:
+        - 5601:5601
+    depends_on:
+        - elasticsearch
+    environment:
+        - ELASTICSEARCH_URL=http://localhost:9200
+    networks:
+        - myappnetwork
+
+networks:
+  myappnetwork:
+    name: myappnetwork
+    driver: bridge
+
+volumes:
+  elasticsearch-data:
